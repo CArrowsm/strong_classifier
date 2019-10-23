@@ -1,1 +1,1 @@
-# A Package to classify images with 'strong' metal artifact streaks, using non-,achine learning image processing
+# A Package to classify CT scan images, using non-machine learning image processing
