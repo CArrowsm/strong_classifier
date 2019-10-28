@@ -14,8 +14,9 @@ class DataLoader(object):
         self.img_dir, self.img_suffix = args.img_dir, args.img_suffix
         self.saving, self.log_dir = args.logging, args.logdir
         self.cal_acc = args.cal_acc
+        self.label_dir = args.label_dir
 
-        self.patient_list, self.label_list = self.get_patient_df()
+        self.patient_list, self.label_list = self.get_patient_list()
 
         self.dataset_length = len(self.patient_list) # Total number of patients
 
@@ -27,7 +28,7 @@ class DataLoader(object):
             and their file names'''
 
         # If we are using labels, get the DF from the label DF
-        if self.label_dir :
+        if self.cal_acc :
             # Load data as a pandas DataFrame
             df = pd.read_csv(label_path, index_col="p_index",
                              dtype=str, na_values=['nan', 'NaN', ''])
@@ -41,7 +42,7 @@ class DataLoader(object):
             label_list = df["has_artifact"].values
             return patient_list, label_list
         else :
-            # Make a patient dataframe from scratch
+            # Make a list of patient IDs from scratch
             patient_list = []
             for file in os.listdir(self.img_dir) :
                  # Get the ID from the filename
@@ -58,12 +59,12 @@ class DataLoader(object):
 
 
 
-    def __getitem__(self, index):
+    def getitem(self, index):
         '''Load the images for the patient corresponding to index
             in the patient_list'''
 
         pid = self.patient_list[index]
-        label = self.label_list[index] if label_list else None
+        label = self.label_list[index] if self.label_list else None
 
         # Get the full path to the npy file containing this patient's scans
         file_name = str(pid) + self.img_suffix
@@ -73,7 +74,7 @@ class DataLoader(object):
         img = np.load(full_path)
 
         # Renormalize the image
-        img = self.normalize(img, self.norm1, self.norm2)
+        # img = self.normalize(img, self.norm1, self.norm2)
 
         return img, label
 
