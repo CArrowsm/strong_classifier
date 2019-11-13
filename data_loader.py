@@ -13,7 +13,7 @@ class DataLoader(object):
 
         self.img_dir, self.img_suffix = args.img_dir, args.img_suffix
         self.saving, self.log_dir = args.logging, args.logdir
-        self.cal_acc = args.cal_acc
+        self.calc_acc = args.calc_acc
         self.label_dir = args.label_dir
 
         self.patient_list, self.label_list = self.get_patient_list()
@@ -28,18 +28,18 @@ class DataLoader(object):
             and their file names'''
 
         # If we are using labels, get the DF from the label DF
-        if self.cal_acc :
+        if self.calc_acc :
             # Load data as a pandas DataFrame
-            df = pd.read_csv(label_path, index_col="p_index",
+            df = pd.read_csv(self.label_dir, index_col="p_index",
                              dtype=str, na_values=['nan', 'NaN', ''])
 
             # Uncomment the next two lines if labels are incomplete
-            # first_entry = df["has_artifact"].first_valid_index()
-            # last_entry = df["has_artifact"].last_valid_index()
-            # df = df.loc[first_entry : last_entry]
+            first_entry = df["has_artifact"].first_valid_index()
+            last_entry = df["has_artifact"].last_valid_index()
+            df = df.loc[first_entry : last_entry]
 
             patient_list = df["patient_id"].values
-            label_list = df["has_artifact"].values
+            label_list = df["has_artifact"].values.astype(int)
             return patient_list, label_list
         else :
             # Make a list of patient IDs from scratch
@@ -64,14 +64,14 @@ class DataLoader(object):
             in the patient_list'''
 
         pid = self.patient_list[index]
-        label = self.label_list[index] if self.label_list else None
+        label = self.label_list[index] if self.calc_acc else None
 
         # Get the full path to the npy file containing this patient's scans
         file_name = str(pid) + self.img_suffix
         full_path = os.path.join(self.img_dir, file_name)
 
         # Load the np array representing the patient's image Stack
-        img = np.load(full_path)
+        img = np.load(full_path, mmap_mode='r')
 
         # Renormalize the image
         # img = self.normalize(img, self.norm1, self.norm2)
