@@ -189,7 +189,7 @@ class Classifier(object):
                 continue   # If the image is entirely black, just go to next image
 
             # Remove the patient's body from the images
-            # image = self.remove_body(image)
+            image = self.remove_body(image)
 
             # If image is None, just go to next image
             # remove_body() may return None if the slice is identically some value
