@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 
 
 ### EDIT THESE PATHS ###
-img_path = "/cluster/projects/bhklab/RADCURE/img/"
+# img_path = "/cluster/projects/bhklab/RADCURE/img/"
+img_path = "/cluster/projects/radiomics/Temp/RADCURE-npy/img"
 img_suffix = "_img.npy"                 # This string follows the patient ID in the filename
 label_path = "/cluster/home/carrowsm/logs/label/reza_artifact_labels.csv"
 log_dir = "/cluster/home/carrowsm/logs/label/"

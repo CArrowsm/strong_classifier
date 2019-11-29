@@ -51,10 +51,12 @@ class DataLoader(object):
 
     def normalize(self, img, MIN:float, MAX:float) :
         # Normalize the image (var = 1, mean = 0)
-        img = (img - MIN) / (MAX - MIN)
-        img = np.clip(img, MIN, MAX)
-        img -= img.mean()
-        img /= img.std()
+        # img = (img - MIN) / (MAX - MIN)
+        # img = np.clip(img, MIN, MAX)
+        # img -= img.mean()
+        # img /= img.std()
+
+        img = (img - 1911.1528484879445) / (1404.5799573095953)
         return img
 
 

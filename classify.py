@@ -161,6 +161,15 @@ class Classifier(object):
                                      prominence=4)
         return peak_indices
 
+    def normalize(self, img, MIN=2000., MAX=3000., mean=1911.15, std=1404.58) :
+        # Normalize the image (var = 1, mean = 0)
+        img = img.astype(float)
+        # print(np.min(img), np.max(img))
+        img = np.clip(img, MIN, MAX)
+        img = (img - MIN) / (MAX - MIN)
+        # img = (img - mean) / (std)
+        return img
+
     def classify(self, inputs) :
         '''Takes one patient's stack of images and classifies it as containing
             'strong' artifacts or no artifact.
@@ -171,13 +180,19 @@ class Classifier(object):
         '''
         pid, index = inputs[0], inputs[1]
 
-        logging.info("Classifying patient {}".format(pid))
+        # logging.info("Classifying patient {}".format(pid))
 
         # Get the image Data
         stack, label = self.data_loader.getitem(index)
         z_size, x_size, y_size = np.shape(stack)
         stack = stack[80:-20, 0:350, 50:-50] # Limit the image range
                                     # This removes unwanted common features
+
+        # Convert the image to 16-bit integer
+        stack = stack.astype(np.int16)
+
+        # Normalize the image
+        stack = self.normalize(stack, MIN=-1000.0, MAX=0.0)
 
         intensities = []
 
@@ -197,10 +212,10 @@ class Classifier(object):
                 continue
 
             # Threshold the new image
-            # image = np.array(image > 0.02, dtype=int)
+            image = np.array(image > 0.04, dtype=int)
             # image = self.nonlin_norm(image)
             # image = np.array(image > 0.5, dtype=int)
-            image = np.array(image > 0.02, dtype=int)
+            # image = np.array(image > 0.02, dtype=int)
 
             # Get sinogram
             theta = np.linspace(0., 180., 180, endpoint=False)
