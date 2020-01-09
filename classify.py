@@ -185,7 +185,8 @@ class Classifier(object):
         # Get the image Data
         stack, label = self.data_loader.getitem(index)
         z_size, x_size, y_size = np.shape(stack)
-        stack = stack[80:-20, 0:350, 50:-50] # Limit the image range
+        # stack = stack[80:-20, 0:350, 50:-50] # Limit the image range
+        stack = stack[20:-20, 0:350, 50:-50]
                                     # This removes unwanted common features
 
         # Convert the image to 16-bit integer
@@ -199,7 +200,7 @@ class Classifier(object):
 
         # Loop through all images in patient's stack of scans
         for image in stack :
-            if np.sum(image) < 1.0e-5 :
+            if np.sum(image) < 1.0e-8 :
                 intensities.append(0.0)
                 continue   # If the image is entirely black, just go to next image
 
@@ -220,9 +221,11 @@ class Classifier(object):
             # Get sinogram
             theta = np.linspace(0., 180., 180, endpoint=False)
             sinogram = radon(image, theta=theta, circle=True)
-
-            # Calculate mean intensity in key region of sinogram
+            #
+            # # Calculate mean intensity in key region of sinogram
             mean = np.mean(sinogram[120:-120, 40:-40])
+            # logging.info(mean)
+            # mean = np.mean(image)
 
             # Append to list of intensities
             intensities.append(mean)

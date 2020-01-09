@@ -1,0 +1,152 @@
+import os
+import numpy as np
+
+import pandas as pd
+
+
+import time
+
+import scipy.stats as stat
+
+from scipy.signal import find_peaks
+
+
+class GetLocation(object):
+    """Finds the location of artifacts in a patient"""
+    def __init__(self, args):
+        super(GetLocation, self).__init__()
+        # Data directories
+        self.img_dir = "/cluster/projects/radiomics/Temp/RADCURE-npy/img"
+        self.label_path = "/cluster/home/carrowsm/MIRA/combined_labels.csv"
+
+        label_df = pd.read_csv(self.label_path, na_values=["","nan"], dtype=str, index_col="p_index")
+
+        self.labels = label_df[label_df["has_artifact"] != "0" ]
+
+
+
+
+    def detect_peaks(self, x) :
+        ''' Detects peaks in a 1D array x.'''
+        m = np.median(x)
+        std = np.std(x)
+        h = m + 1.5*std
+
+        peak_indices, _ = find_peaks(x,
+                                     distance=None,
+                                     threshold=None,
+                                     height=h,
+                                     prominence=None)
+        return peak_indices
+
+    # Algorithm to iteratively decrease the lower normalization bound until artifact is found
+    def norm_std(self, X, MIN, MAX):
+        """Takes an array of images slices and
+        normalizes it, then returns the std deviation
+        per slice."""
+        clipped = np.clip(X, MIN, MAX)
+        X = (clipped - MIN) / (MAX - MIN)
+
+        ### Calculate per-slice std  ###
+        return np.std(X, axis=(1,2))
+
+    def find_art_loc(self, X, min_range=200.0) :
+        """ X is a stack of CT images"""
+        ### Normalize (first attempt)  ###
+        max_ = np.max(X) + 200.0
+        min_ = max_ - min_range
+
+        ### Normalize and calculate per-slice std  ###
+        z_std = self.norm_std(X, min_, max_)
+
+        ### Try to find artifact location ###
+        peaks = self.detect_peaks(z_std)
+
+        ### Calculate area under z_std curve ###
+        # integral = np.trapz(z_std, dx=1)
+        integral = 0
+
+        ### If no peaks were found, decrease
+        #  lower limit and do it again      ###
+        if len(peaks) == 0 :
+            new_min_range = min_range + 50.0
+            print("Trying again, HU range: ", max_-new_min_range, max_)
+            return self.find_art_loc(X, min_range=new_min_range)
+        else :
+            return peaks, integral
+
+    def run_on_data(self) :
+        # Test on labelled data
+        preds = {}
+        integrals = []
+        times = []
+
+
+        for patient_id in self.labels["patient_id"].values :
+            # t0 = time.time()
+            file_name = patient_id + "_img.npy"
+            try :
+                # Load image
+                # t1 = time.time()
+                X = np.load(os.path.join(self.img_dir, file_name))
+                # print(time.time() - t1)
+            except :
+                preds[patient_id] = ["LoadingError"]
+                continue
+
+            # Detect peaks
+            # t1 = time.time()
+            peaks, integral = self.find_art_loc(X)
+            # print(time.time() - t1)
+
+            # Add results to dictionary
+            preds[patient_id] = peaks
+            integrals.append(integral)
+
+            # t_elapsed = time.time() - t0
+            # print(str(t_elapsed) + "\n")
+            # print("#" * 10)
+            # times.append(t_elapsed)
+
+        return preds, integrals, times
+
+
+
+# Accuracy assessment
+def assess_acc(ids, labels, preds, integrals) :
+    single_preds = [np.median(preds[key]) for key in preds]
+    df = pd.DataFrame({"pid": ids, "label": labels, "pred": single_preds}, dtype=float)
+
+    df["loc_diff"] = df["label"] - df["pred"]
+    size = len(ids)
+
+    exact = sum(df["loc_diff"] == 0) / size
+    within_5  = sum(df["loc_diff"] < 5) / size
+    within_10 = sum(df["loc_diff"] < 10) / size
+    within_15 = sum(df["loc_diff"] < 15) / size
+    within_20 = sum(df["loc_diff"] < 20) / size
+    return [exact, within_5, within_10, within_15, within_20], df
+
+
+
+
+if __name__ == "__main__" :
+
+    print("Finished importing")
+
+    args = []
+    model = GetLocation(args)
+    print("Model loaded")
+
+
+    preds, integrals, times = model.run_on_data()
+    print("All images labelled")
+
+    print("Assessing accuracy")
+    patient_ids = model.labels["patient_id"].values
+    truth = model.labels["a_slice"].values
+
+    summary, results_df = assess_acc(patient_ids, truth, preds, integrals)
+
+    print(summary)
+    results_df.to_csv("non_sinogram_results.csv", na_rep="nan")

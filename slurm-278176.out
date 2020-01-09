@@ -1,0 +1,12 @@
+Starting Shell Script
+Started python script.
+Finished importing
+Model loaded
+Trying again, HU range:  3021.0 3271.0
+Traceback (most recent call last):
+  File "/cluster/home/carrowsm/artifacts/strong_classifier/find_loc.py", line 142, in <module>
+    preds, integrals, times = model.run_on_data()
+  File "/cluster/home/carrowsm/artifacts/strong_classifier/find_loc.py", line 106, in run_on_data
+    t_elapsed = time.time() - t0
+NameError: name 't0' is not defined
+Python script finished.
