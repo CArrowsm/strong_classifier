@@ -1,3 +1,21 @@
+'''
+A script which finds the locations of dental artifacts
+in CT scans. The script loads images which have already
+been identified as containing DAs (either through manual
+labelling or using an automated classifier).
+
+The algorithm works by doing the following for each 3D image:
+  1. Clipping the full 3D image's intensity range to between
+     max(image) and max + 200 HU.
+  2. Calculate the per-slice standard deviation.
+  3. Perform peak detection on the per-slice std:
+     - If no peaks are found in the per-slice std,
+       3.1. Then renormalize the original image with the
+            lower HU limit decreased by 20 HU.
+       3.2. Repeat steps 2 and 3.
+     - Otherwise, the indeces of the peaks are saved as the
+       locations of the artifacts.
+'''
 import os
 import numpy as np
 
@@ -53,7 +71,7 @@ class GetLocation(object):
     def find_art_loc(self, X, min_range=200.0) :
         """ X is a stack of CT images"""
         ### Normalize (first attempt)  ###
-        max_ = np.max(X) + 200.0
+        max_ = np.max(X) + min_range  # We want a range of [max+200, max]
         min_ = max_ - min_range
 
         ### Normalize and calculate per-slice std  ###
